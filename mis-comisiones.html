@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relación de Comisiones & Pagos</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2canvas CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        .strikethrough-green {
+            position: relative;
+            color: #10B981;
+            font-weight: 600;
+        }
+        .strikethrough-green::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 2px;
+            background-color: #059669;
+            transform: translateY(-50%);
+        }
+        .bg-navy { background-color: #0F172A; }
+        .text-gold { color: #F59E0B; }
+        .border-gold { border-color: #F59E0B; }
+        .bg-gold { background-color: #F59E0B; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen text-gray-800 flex flex-col font-sans">
+
+    <!-- Navbar -->
+    <header class="bg-navy text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <!-- SVG Monograma JJV -->
+                <div class="bg-white p-1 rounded-md flex items-center justify-center shadow">
+                    <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 30 20 L 60 20 M 45 20 L 45 65 C 45 78, 30 78, 25 70" stroke="#0F172A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M 45 20 L 75 20 M 60 20 L 60 65 C 60 78, 45 78, 40 70" stroke="#0F172A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M 52 50 L 70 85 L 88 50" stroke="#0F172A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">Relación de Comisiones & Pagos</h1>
+                    <p class="text-xs text-gray-300">Gestión de Presupuestos y Órdenes de Compra</p>
+                </div>
+            </div>
+            
+            <!-- Navigation Tabs -->
+            <nav class="flex space-x-2">
+                <button id="btn-tab-proyectos" onclick="switchTab('proyectos')" class="px-3 py-2 rounded-lg text-xs md:text-sm font-semibold transition bg-gold text-slate-900 shadow">
+                    <i class="fa-solid fa-list-check mr-1"></i> Proyectos
+                </button>
+                <button id="btn-tab-soporte" onclick="switchTab('soporte')" class="px-3 py-2 rounded-lg text-xs md:text-sm font-semibold transition bg-slate-800 text-gray-300 hover:bg-slate-700">
+                    <i class="fa-solid fa-calendar-check mr-1"></i> Soporte Mensual
+                </button>
+                <button id="btn-tab-balance" onclick="switchTab('balance')" class="px-3 py-2 rounded-lg text-xs md:text-sm font-semibold transition bg-slate-800 text-gray-300 hover:bg-slate-700">
+                    <i class="fa-solid fa-chart-pie mr-1"></i> Balance
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+
+        <!-- TAB: PROYECTOS -->
+        <div id="tab-proyectos" class="space-block">
+            
+            <!-- Resumen superior -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-emerald-500 flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Total Cobrado (Proyectos)</p>
+                        <p id="stat-cobrado" class="text-2xl font-bold text-emerald-600">$0.00</p>
+                    </div>
+                    <i class="fa-solid fa-circle-check text-emerald-500 text-3xl opacity-80"></i>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-amber-500 flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Pendiente Inicial (50%)</p>
+                        <p id="stat-inicial-pend" class="text-2xl font-bold text-amber-600">$0.00</p>
+                    </div>
+                    <i class="fa-solid fa-clock text-amber-500 text-3xl opacity-80"></i>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-amber-600 flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Pendiente Restante (50%)</p>
+                        <p id="stat-restante-pend" class="text-2xl font-bold text-amber-700">$0.00</p>
+                    </div>
+                    <i class="fa-solid fa-hourglass-half text-amber-600 text-3xl opacity-80"></i>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-navy flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Por Cobrar Total (Incl. Soporte)</p>
+                        <p id="stat-total-pend" class="text-2xl font-bold text-slate-800">$0.00</p>
+                    </div>
+                    <i class="fa-solid fa-wallet text-slate-800 text-3xl opacity-80"></i>
+                </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="bg-white p-4 rounded-xl shadow mb-6 flex flex-wrap gap-4 items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <button onclick="openProjectModal()" class="bg-navy hover:bg-slate-800 text-white font-semibold px-4 py-2 rounded-lg text-sm flex items-center shadow transition">
+                        <i class="fa-solid fa-plus mr-2"></i> Nuevo Proyecto
+                    </button>
+                    <button onclick="openExportModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg text-sm flex items-center shadow transition">
+                        <i class="fa-solid fa-file-invoice-dollar mr-2"></i> Generar Reporte de Cobro
+                    </button>
+                </div>
+                <div class="text-xs text-gray-500 font-medium">
+                    <i class="fa-solid fa-info-circle text-blue-500 mr-1"></i> Para administrar pagos fijos mensuales ve a la pestaña <strong>Soporte Mensual</strong>.
+                </div>
+            </div>
+
+            <!-- Tabla Principal de Proyectos -->
+            <div class="bg-white rounded-xl shadow overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead class="bg-slate-900 text-white text-xs uppercase tracking-wider">
+                            <tr>
+                                <th class="p-3">Cliente / Proyecto</th>
+                                <th class="p-3">Presupuesto</th>
+                                <th class="p-3 text-right">Monto Base</th>
+                                <th class="p-3 text-right">Comisión (1%)</th>
+                                <th class="p-3 text-center">50% Inicial</th>
+                                <th class="p-3 text-center">50% Restante</th>
+                                <th class="p-3 text-right">Pagado</th>
+                                <th class="p-3 text-right">Bal. Inicial Pend.</th>
+                                <th class="p-3 text-right">Bal. Restante Pend.</th>
+                                <th class="p-3 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projects-table-body" class="divide-y divide-gray-200">
+                            <!-- Filas dinámicas -->
+                        </tbody>
+                        <tfoot class="bg-slate-100 font-bold border-t-2 border-slate-300">
+                            <tr>
+                                <td class="p-3" colspan="2">TOTALES PROYECTOS</td>
+                                <td class="p-3 text-right" id="foot-base">$0.00</td>
+                                <td class="p-3 text-right text-indigo-700" id="foot-comision">$0.00</td>
+                                <td class="p-3 text-center text-gray-600" id="foot-50-inic">$0.00</td>
+                                <td class="p-3 text-center text-gray-600" id="foot-50-rest">$0.00</td>
+                                <td class="p-3 text-right text-emerald-600" id="foot-pagado">$0.00</td>
+                                <td class="p-3 text-right text-amber-600" id="foot-bal-inic">$0.00</td>
+                                <td class="p-3 text-right text-amber-700" id="foot-bal-rest">$0.00</td>
+                                <td class="p-3"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: CONTROL DE SOPORTE MENSUAL -->
+        <div id="tab-soporte" class="space-block hidden">
+            <!-- Resumen Soporte -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-indigo-500 flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Total Soporte Registrado</p>
+                        <p id="stat-soporte-total" class="text-2xl font-bold text-indigo-700">$0.00</p>
+                    </div>
+                    <i class="fa-solid fa-list-check text-indigo-500 text-3xl opacity-80"></i>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-emerald-500 flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Soporte Cobrado</p>
+                        <p id="stat-soporte-cobrado" class="text-2xl font-bold text-emerald-600">$0.00</p>
+                    </div>
+                    <i class="fa-solid fa-check-double text-emerald-500 text-3xl opacity-80"></i>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-amber-500 flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Soporte Pendiente por Cobrar</p>
+                        <p id="stat-soporte-pendiente" class="text-2xl font-bold text-amber-600">$0.00</p>
+                    </div>
+                    <i class="fa-solid fa-hourglass-start text-amber-500 text-3xl opacity-80"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow mb-6">
+                <div class="flex justify-between items-center mb-4 border-b pb-3">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                            <i class="fa-solid fa-calendar-days text-indigo-600 mr-2"></i> Histórico: Operations, Marketing & Sales Support
+                        </h2>
+                        <p class="text-xs text-gray-500">Registro mensual fijo de $120 por elaboración de presupuestos u órdenes de compra.</p>
+                    </div>
+                    <button onclick="openSupportModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-sm flex items-center shadow transition">
+                        <i class="fa-solid fa-plus mr-2"></i> Agregar Mes de Soporte
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead class="bg-slate-900 text-white text-xs uppercase tracking-wider">
+                            <tr>
+                                <th class="p-3">Período / Mes</th>
+                                <th class="p-3">Concepto Detallado</th>
+                                <th class="p-3 text-right">Monto ($)</th>
+                                <th class="p-3 text-center">Estado del Pago</th>
+                                <th class="p-3 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="support-table-body" class="divide-y divide-gray-200">
+                            <!-- Filas de soporte -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: BALANCE INTERACTIVO -->
+        <div id="tab-balance" class="space-block hidden">
+            <div class="bg-white p-6 rounded-xl shadow mb-6">
+                <h2 class="text-lg font-bold text-slate-800 mb-2 flex items-center">
+                    <i class="fa-solid fa-calculator text-amber-500 mr-2"></i> Balance e Histórico por Proyecto
+                </h2>
+                <p class="text-sm text-gray-600 mb-4">Selecciona uno o más proyectos para calcular sumatorias personalizadas al instante.</p>
+
+                <!-- Selector Multi-Proyecto -->
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Seleccionar Proyectos para Multi-Sumatoria:</label>
+                    <div id="balance-checkboxes" class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-lg border">
+                        <!-- Checkboxes dinámicos -->
+                    </div>
+                </div>
+
+                <!-- Resultado de Selección Multi-Proyecto -->
+                <div class="bg-slate-900 text-white p-4 rounded-xl shadow flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-gray-400 uppercase font-bold block">Suma de Proyectos Seleccionados:</span>
+                        <span id="multi-select-names" class="text-sm text-amber-400 font-medium">Ninguno seleccionado</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-gray-400 uppercase font-bold block">Comisión Total Generada:</span>
+                        <span id="multi-select-total" class="text-2xl font-bold text-emerald-400">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Desglose Card por Proyecto -->
+            <div id="balance-cards-container" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Cards dinámicas -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Nuevo / Editar Proyecto -->
+    <div id="project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 id="modal-title" class="text-lg font-bold text-slate-800 mb-4">Agregar Proyecto</h3>
+            <form id="project-form" onsubmit="saveProject(event)">
+                <input type="hidden" id="proj-id">
+                <div class="mb-3">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Cliente / Proyecto</label>
+                    <input type="text" id="proj-client" required class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Presupuesto / Ref.</label>
+                    <input type="text" id="proj-presupuesto" required class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Monto Base Total ($)</label>
+                    <input type="number" step="0.01" id="proj-monto" required class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy" placeholder="44350.39">
+                    <span class="text-xs text-gray-500">La comisión del 1% se calcula automáticamente sobre este monto.</span>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="closeProjectModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-navy text-white rounded-lg text-sm font-semibold hover:bg-slate-800">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Agregar / Editar Soporte Mensual -->
+    <div id="support-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 id="support-modal-title" class="text-lg font-bold text-slate-800 mb-4">Agregar Pago de Soporte Mensual</h3>
+            <form id="support-form" onsubmit="saveSupport(event)">
+                <input type="hidden" id="supp-id">
+                <div class="mb-3">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Mes / Período</label>
+                    <input type="text" id="supp-period" required placeholder="Ej: OCTOBER 2026" class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Concepto Completo</label>
+                    <input type="text" id="supp-desc" required value="OPERATIONS, MARKETING. & SALES SUPPORT" class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Monto ($)</label>
+                    <input type="number" step="0.01" id="supp-amount" required value="120" class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="closeSupportModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Descarga / Generador de Factura -->
+    <div id="export-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 overflow-y-auto py-10">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl p-6">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center">
+                    <i class="fa-solid fa-cash-register text-emerald-600 mr-2"></i> Generar Reporte de Cobro Pendiente
+                </h3>
+                <button onclick="closeExportModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <!-- Sugerencias -->
+            <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded mb-4">
+                <p class="text-xs font-bold text-amber-800 uppercase mb-1">¿Qué deseas incluir en este cobro?</p>
+                <p class="text-xs text-amber-700">Selecciona los elementos que te corresponden cobrar en este periodo para incluirlos en la imagen.</p>
+            </div>
+
+            <div class="mb-4 max-h-48 overflow-y-auto border rounded p-2 bg-gray-50" id="export-checklist">
+                <!-- Checkbox dinámicos -->
+            </div>
+
+            <!-- VISTA PREVIA FACTURA DESCARGABLE -->
+            <div class="border rounded-lg p-2 bg-gray-200 mb-4">
+                <p class="text-xs font-bold text-gray-500 uppercase mb-2 text-center">Vista previa de la imagen a generar:</p>
+                
+                <div id="invoice-preview" class="bg-white p-6 rounded shadow-md max-w-xl mx-auto border border-gray-300">
+                    <!-- Header Factura con LOGO JJV -->
+                    <div class="flex justify-between items-center border-b-2 border-slate-900 pb-4 mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-1 border border-slate-900 rounded">
+                                <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M 30 20 L 60 20 M 45 20 L 45 65 C 45 78, 30 78, 25 70" stroke="#0F172A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M 45 20 L 75 20 M 60 20 L 60 65 C 60 78, 45 78, 40 70" stroke="#0F172A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M 52 50 L 70 85 L 88 50" stroke="#0F172A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="text-base font-bold text-slate-900 uppercase tracking-wider">RELACIÓN DE COMISIONES Y PAGOS</h2>
+                                <p class="text-xs text-gray-500">Gestión de Presupuestos y Órdenes de Compra</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p id="inv-date" class="text-xs font-semibold text-gray-600">Fecha: --/--/----</p>
+                            <p id="inv-ref" class="text-xs text-gray-400">Ref: REC-2026-001</p>
+                        </div>
+                    </div>
+
+                    <!-- Items Desglosados -->
+                    <table class="w-full text-xs text-left mb-4">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-800 border-b">
+                                <th class="p-2">Concepto / Descripción</th>
+                                <th class="p-2 text-right">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoice-items-body" class="divide-y divide-gray-100">
+                            <!-- Items agregados dinámicamente -->
+                        </tbody>
+                    </table>
+
+                    <!-- Total -->
+                    <div class="flex justify-between items-center border-t-2 border-slate-900 pt-3 bg-slate-50 p-2 rounded">
+                        <span class="text-sm font-bold text-slate-900">TOTAL A PAGAR:</span>
+                        <span id="invoice-total" class="text-lg font-bold text-emerald-600">$0.00</span>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-dashed flex justify-between items-end text-xs text-gray-500">
+                        <div>
+                            <p class="font-bold text-slate-700">Elaborado por: Javier Vertel</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeExportModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold">Cerrar</button>
+                <button onclick="downloadInvoiceImage()" class="px-5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 shadow flex items-center">
+                    <i class="fa-solid fa-download mr-2"></i> Descargar Formato (PNG)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de Lógica -->
+    <script>
+        let initialData = [
+            { id: 0, client: "WOLFSON", presupuesto: "Q260501R", base: 8118.37, inicPaid: true, restPaid: true },
+            { id: 1, client: "JEMM TEC P1", presupuesto: "Q260625", base: 44350.39, inicPaid: true, restPaid: false },
+            { id: 2, client: "JEMM TEC P2", presupuesto: "Q260714", base: 11203.20, inicPaid: true, restPaid: false },
+            { id: 3, client: "JEMM TEC P3", presupuesto: "Q260814", base: 16886.75, inicPaid: true, restPaid: false },
+            { id: 4, client: "STUDIO RW", presupuesto: "Q260805", base: 27568.13, inicPaid: true, restPaid: false },
+            { id: 5, client: "BRYAN POWELL", presupuesto: "Q261018R", base: 78361.14, inicPaid: false, restPaid: false }
+        ];
+
+        let initialSupportData = [
+            { id: 101, period: "OCTOBER 2026", desc: "OCTOBER: OPERATIONS, MARKETING. & SALES SUPPORT", amount: 120, paid: false }
+        ];
+
+        let projects = JSON.parse(localStorage.getItem('jjv_projects_v3')) || initialData;
+        let supportLogs = JSON.parse(localStorage.getItem('jjv_support_v3')) || initialSupportData;
+
+        function renderProjects() {
+            const tbody = document.getElementById('projects-table-body');
+            tbody.innerHTML = '';
+
+            projects.forEach(p => {
+                const comision = p.base * 0.01;
+                const inic = comision * 0.5;
+                const rest = comision * 0.5;
+
+                let pagado = 0;
+                if (p.inicPaid) pagado += inic;
+                if (p.restPaid) pagado += rest;
+
+                const balInic = p.inicPaid ? 0 : inic;
+                const balRest = p.restPaid ? 0 : rest;
+
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50 transition border-b";
+
+                row.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-800">${p.client}</td>
+                    <td class="p-3 text-gray-500 font-mono text-xs">${p.presupuesto}</td>
+                    <td class="p-3 text-right font-medium">$${p.base.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="p-3 text-right font-bold text-indigo-700">$${comision.toFixed(2)}</td>
+                    
+                    <td class="p-3 text-center">
+                        <button onclick="togglePaid(${p.id}, 'inic')" class="px-2 py-1 rounded text-xs font-semibold ${p.inicPaid ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 strikethrough-green' : 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200'}">
+                            $${inic.toFixed(2)} ${p.inicPaid ? '<i class="fa-solid fa-check ml-1"></i>' : ''}
+                        </button>
+                    </td>
+
+                    <td class="p-3 text-center">
+                        <button onclick="togglePaid(${p.id}, 'rest')" class="px-2 py-1 rounded text-xs font-semibold ${p.restPaid ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 strikethrough-green' : 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200'}">
+                            $${rest.toFixed(2)} ${p.restPaid ? '<i class="fa-solid fa-check ml-1"></i>' : ''}
+                        </button>
+                    </td>
+
+                    <td class="p-3 text-right font-bold ${pagado > 0 ? 'text-emerald-600' : 'text-gray-400'}">$${pagado.toFixed(2)}</td>
+                    <td class="p-3 text-right font-medium ${balInic > 0 ? 'text-amber-600 font-bold' : 'text-gray-400'}">$${balInic.toFixed(2)}</td>
+                    <td class="p-3 text-right font-medium ${balRest > 0 ? 'text-amber-700 font-bold' : 'text-gray-400'}">$${balRest.toFixed(2)}</td>
+
+                    <td class="p-3 text-center space-x-1">
+                        <button onclick="editProject(${p.id})" class="text-blue-600 hover:text-blue-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteProject(${p.id})" class="text-red-500 hover:text-red-700 p-1"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            updateTotals();
+            renderSupportTab();
+            renderBalanceTab();
+            saveData();
+        }
+
+        function renderSupportTab() {
+            const tbody = document.getElementById('support-table-body');
+            tbody.innerHTML = '';
+
+            let totalSoporte = 0;
+            let soporteCobrado = 0;
+            let soportePendiente = 0;
+
+            supportLogs.forEach(s => {
+                totalSoporte += s.amount;
+                if (s.paid) soporteCobrado += s.amount;
+                else soportePendiente += s.amount;
+
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50 transition border-b";
+
+                row.innerHTML = `
+                    <td class="p-3 font-bold text-slate-800">${s.period}</td>
+                    <td class="p-3 text-gray-700">${s.desc}</td>
+                    <td class="p-3 text-right font-bold text-slate-900">$${s.amount.toFixed(2)}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="toggleSupportStatus(${s.id})" class="px-3 py-1 rounded text-xs font-semibold ${s.paid ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 strikethrough-green' : 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200'}">
+                            ${s.paid ? 'Cobrado <i class="fa-solid fa-check ml-1"></i>' : 'Pendiente'}
+                        </button>
+                    </td>
+                    <td class="p-3 text-center space-x-1">
+                        <button onclick="editSupport(${s.id})" class="text-blue-600 hover:text-blue-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteSupport(${s.id})" class="text-red-500 hover:text-red-700 p-1"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('stat-soporte-total').innerText = `$${totalSoporte.toFixed(2)}`;
+            document.getElementById('stat-soporte-cobrado').innerText = `$${soporteCobrado.toFixed(2)}`;
+            document.getElementById('stat-soporte-pendiente').innerText = `$${soportePendiente.toFixed(2)}`;
+        }
+
+        function togglePaid(id, type) {
+            const p = projects.find(item => item.id === id);
+            if (p) {
+                if (type === 'inic') p.inicPaid = !p.inicPaid;
+                if (type === 'rest') p.restPaid = !p.restPaid;
+                renderProjects();
+            }
+        }
+
+        function toggleSupportStatus(id) {
+            const s = supportLogs.find(item => item.id === id);
+            if (s) {
+                s.paid = !s.paid;
+                renderProjects();
+            }
+        }
+
+        function updateTotals() {
+            let totalBase = 0;
+            let totalComision = 0;
+            let totalInic = 0;
+            let totalRest = 0;
+            let totalPagado = 0;
+            let totalBalInic = 0;
+            let totalBalRest = 0;
+
+            projects.forEach(p => {
+                const com = p.base * 0.01;
+                const inic = com * 0.5;
+                const rest = com * 0.5;
+
+                totalBase += p.base;
+                totalComision += com;
+                totalInic += inic;
+                totalRest += rest;
+
+                if (p.inicPaid) totalPagado += inic; else totalBalInic += inic;
+                if (p.restPaid) totalPagado += rest; else totalBalRest += rest;
+            });
+
+            let pendSupportTotal = 0;
+            supportLogs.forEach(s => {
+                if (!s.paid) pendSupportTotal += s.amount;
+            });
+
+            document.getElementById('foot-base').innerText = `$${totalBase.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('foot-comision').innerText = `$${totalComision.toFixed(2)}`;
+            document.getElementById('foot-50-inic').innerText = `$${totalInic.toFixed(2)}`;
+            document.getElementById('foot-50-rest').innerText = `$${totalRest.toFixed(2)}`;
+            document.getElementById('foot-pagado').innerText = `$${totalPagado.toFixed(2)}`;
+            document.getElementById('foot-bal-inic').innerText = `$${totalBalInic.toFixed(2)}`;
+            document.getElementById('foot-bal-rest').innerText = `$${totalBalRest.toFixed(2)}`;
+
+            // Dashboard Stats
+            document.getElementById('stat-cobrado').innerText = `$${(totalPagado).toFixed(2)}`;
+            document.getElementById('stat-inicial-pend').innerText = `$${totalBalInic.toFixed(2)}`;
+            document.getElementById('stat-restante-pend').innerText = `$${totalBalRest.toFixed(2)}`;
+            document.getElementById('stat-total-pend').innerText = `$${(totalBalInic + totalBalRest + pendSupportTotal).toFixed(2)}`;
+        }
+
+        // Modales Proyecto
+        function openProjectModal(editId = null) {
+            document.getElementById('project-form').reset();
+            document.getElementById('proj-id').value = '';
+            document.getElementById('modal-title').innerText = 'Agregar Proyecto';
+
+            if (editId !== null) {
+                const p = projects.find(item => item.id === editId);
+                if (p) {
+                    document.getElementById('proj-id').value = p.id;
+                    document.getElementById('proj-client').value = p.client;
+                    document.getElementById('proj-presupuesto').value = p.presupuesto;
+                    document.getElementById('proj-monto').value = p.base;
+                    document.getElementById('modal-title').innerText = 'Editar Proyecto';
+                }
+            }
+
+            document.getElementById('project-modal').classList.remove('hidden');
+        }
+
+        function closeProjectModal() {
+            document.getElementById('project-modal').classList.add('hidden');
+        }
+
+        function saveProject(e) {
+            e.preventDefault();
+            const id = document.getElementById('proj-id').value;
+            const client = document.getElementById('proj-client').value;
+            const presupuesto = document.getElementById('proj-presupuesto').value;
+            const base = parseFloat(document.getElementById('proj-monto').value);
+
+            if (id !== '') {
+                const p = projects.find(item => item.id == id);
+                if (p) {
+                    p.client = client;
+                    p.presupuesto = presupuesto;
+                    p.base = base;
+                }
+            } else {
+                projects.push({
+                    id: Date.now(),
+                    client: client,
+                    presupuesto: presupuesto,
+                    base: base,
+                    inicPaid: false,
+                    restPaid: false
+                });
+            }
+
+            closeProjectModal();
+            renderProjects();
+        }
+
+        function editProject(id) { openProjectModal(id); }
+        function deleteProject(id) {
+            if (confirm('¿Deseas eliminar este proyecto?')) {
+                projects = projects.filter(p => p.id !== id);
+                renderProjects();
+            }
+        }
+
+        // Modales Soporte Mensual
+        function openSupportModal(editId = null) {
+            document.getElementById('support-form').reset();
+            document.getElementById('supp-id').value = '';
+            document.getElementById('support-modal-title').innerText = 'Agregar Pago de Soporte Mensual';
+
+            if (editId !== null) {
+                const s = supportLogs.find(item => item.id === editId);
+                if (s) {
+                    document.getElementById('supp-id').value = s.id;
+                    document.getElementById('supp-period').value = s.period;
+                    document.getElementById('supp-desc').value = s.desc;
+                    document.getElementById('supp-amount').value = s.amount;
+                    document.getElementById('support-modal-title').innerText = 'Editar Registro de Soporte';
+                }
+            }
+
+            document.getElementById('support-modal').classList.remove('hidden');
+        }
+
+        function closeSupportModal() {
+            document.getElementById('support-modal').classList.add('hidden');
+        }
+
+        function saveSupport(e) {
+            e.preventDefault();
+            const id = document.getElementById('supp-id').value;
+            const period = document.getElementById('supp-period').value;
+            const desc = document.getElementById('supp-desc').value;
+            const amount = parseFloat(document.getElementById('supp-amount').value);
+
+            if (id !== '') {
+                const s = supportLogs.find(item => item.id == id);
+                if (s) {
+                    s.period = period;
+                    s.desc = desc;
+                    s.amount = amount;
+                }
+            } else {
+                supportLogs.push({
+                    id: Date.now(),
+                    period: period,
+                    desc: desc,
+                    amount: amount,
+                    paid: false
+                });
+            }
+
+            closeSupportModal();
+            renderProjects();
+        }
+
+        function editSupport(id) { openSupportModal(id); }
+        function deleteSupport(id) {
+            if (confirm('¿Deseas eliminar este registro de soporte?')) {
+                supportLogs = supportLogs.filter(s => s.id !== id);
+                renderProjects();
+            }
+        }
+
+        // Tabs Switching
+        function switchTab(tab) {
+            document.getElementById('tab-proyectos').classList.add('hidden');
+            document.getElementById('tab-soporte').classList.add('hidden');
+            document.getElementById('tab-balance').classList.add('hidden');
+
+            document.getElementById('btn-tab-proyectos').className = "px-3 py-2 rounded-lg text-xs md:text-sm font-semibold transition bg-slate-800 text-gray-300 hover:bg-slate-700";
+            document.getElementById('btn-tab-soporte').className = "px-3 py-2 rounded-lg text-xs md:text-sm font-semibold transition bg-slate-800 text-gray-300 hover:bg-slate-700";
+            document.getElementById('btn-tab-balance').className = "px-3 py-2 rounded-lg text-xs md:text-sm font-semibold transition bg-slate-800 text-gray-300 hover:bg-slate-700";
+
+            if (tab === 'proyectos') {
+                document.getElementById('tab-proyectos').classList.remove('hidden');
+                document.getElementById('btn-tab-proyectos').className = "px-3 py-2 rounded-lg text-xs md:text-sm font-semibold transition bg-gold text-slate-900 shadow";
+            } else if (tab === 'soporte') {
+                document.getElementById('tab-soporte').classList.remove('hidden');
+                document.getElementById('btn-tab-soporte').className = "px-3 py-2 rounded-lg text-xs md:text-sm font-semibold transition bg-gold text-slate-900 shadow";
+            } else {
+                document.getElementById('tab-balance').classList.remove('hidden');
+                document.getElementById('btn-tab-balance').className = "px-3 py-2 rounded-lg text-xs md:text-sm font-semibold transition bg-gold text-slate-900 shadow";
+            }
+        }
+
+        // Balance Tab
+        function renderBalanceTab() {
+            const container = document.getElementById('balance-cards-container');
+            const checkboxesContainer = document.getElementById('balance-checkboxes');
+            
+            container.innerHTML = '';
+            checkboxesContainer.innerHTML = '';
+
+            projects.forEach(p => {
+                const com = p.base * 0.01;
+                const inic = com * 0.5;
+                const rest = com * 0.5;
+
+                const cbDiv = document.createElement('label');
+                cbDiv.className = "flex items-center space-x-2 text-xs font-semibold text-gray-700 cursor-pointer";
+                cbDiv.innerHTML = `
+                    <input type="checkbox" value="${p.id}" onchange="calculateMultiSelect()" class="balance-multi-cb rounded text-navy focus:ring-navy">
+                    <span>${p.client}</span>
+                `;
+                checkboxesContainer.appendChild(cbDiv);
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-xl shadow border border-gray-200 hover:border-gold transition";
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="font-bold text-slate-900">${p.client}</h4>
+                        <span class="text-xs bg-slate-100 text-gray-600 px-2 py-0.5 rounded font-mono">${p.presupuesto}</span>
+                    </div>
+                    <div class="text-xs text-gray-500 mb-3">Monto Base Proyecto: <span class="font-bold text-gray-800">$${p.base.toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
+                    
+                    <div class="bg-slate-50 p-3 rounded-lg space-y-2 border">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-gray-600">Comisión Total (1%):</span>
+                            <span class="font-bold text-indigo-700">$${com.toFixed(2)}</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-gray-600">50% Inicial (OCs):</span>
+                            <span class="${p.inicPaid ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}">$${inic.toFixed(2)} ${p.inicPaid ? '(Cobrado)' : '(Pendiente)'}</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-gray-600">50% Final (Entrega):</span>
+                            <span class="${p.restPaid ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}">$${rest.toFixed(2)} ${p.restPaid ? '(Cobrado)' : '(Pendiente)'}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function calculateMultiSelect() {
+            const checkboxes = document.querySelectorAll('.balance-multi-cb:checked');
+            let selectedNames = [];
+            let totalComision = 0;
+
+            checkboxes.forEach(cb => {
+                const id = parseInt(cb.value);
+                const p = projects.find(item => item.id === id);
+                if (p) {
+                    selectedNames.push(p.client);
+                    totalComision += (p.base * 0.01);
+                }
+            });
+
+            document.getElementById('multi-select-names').innerText = selectedNames.length > 0 ? selectedNames.join(' + ') : 'Ninguno seleccionado';
+            document.getElementById('multi-select-total').innerText = `$${totalComision.toFixed(2)}`;
+        }
+
+        // Export Modal & Generator
+        function openExportModal() {
+            const checklist = document.getElementById('export-checklist');
+            checklist.innerHTML = '';
+
+            // Registros de Soporte Mensual Pendientes
+            supportLogs.forEach(s => {
+                if (!s.paid) {
+                    checklist.innerHTML += `
+                        <label class="flex items-center justify-between p-2 hover:bg-white rounded cursor-pointer border-b text-xs">
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" class="export-item-cb" data-desc="${s.desc}" data-amount="${s.amount}" checked onchange="updateInvoicePreview()">
+                                <span class="font-semibold text-slate-800">[Soporte Mensual] ${s.desc}</span>
+                            </div>
+                            <span class="font-bold text-slate-900">$${s.amount.toFixed(2)}</span>
+                        </label>
+                    `;
+                }
+            });
+
+            // Proyectos Pendientes
+            projects.forEach(p => {
+                const com = p.base * 0.01;
+                const inic = com * 0.5;
+                const rest = com * 0.5;
+
+                if (!p.inicPaid) {
+                    checklist.innerHTML += `
+                        <label class="flex items-center justify-between p-2 hover:bg-white rounded cursor-pointer border-b text-xs">
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" class="export-item-cb" data-desc="50% Inicial / Aprobación - ${p.client} (${p.presupuesto})" data-amount="${inic}" checked onchange="updateInvoicePreview()">
+                                <span class="text-slate-700">50% Inicial: <strong>${p.client}</strong> (${p.presupuesto})</span>
+                            </div>
+                            <span class="font-bold text-amber-600">$${inic.toFixed(2)}</span>
+                        </label>
+                    `;
+                }
+
+                if (!p.restPaid) {
+                    checklist.innerHTML += `
+                        <label class="flex items-center justify-between p-2 hover:bg-white rounded cursor-pointer border-b text-xs">
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" class="export-item-cb" data-desc="50% Final / Entrega Proyecto - ${p.client} (${p.presupuesto})" data-amount="${rest}" ${p.inicPaid ? 'checked' : ''} onchange="updateInvoicePreview()">
+                                <span class="text-slate-700">50% Final: <strong>${p.client}</strong> (${p.presupuesto})</span>
+                            </div>
+                            <span class="font-bold text-amber-700">$${rest.toFixed(2)}</span>
+                        </label>
+                    `;
+                }
+            });
+
+            const now = new Date();
+            document.getElementById('inv-date').innerText = `Fecha: ${now.getDate().toString().padStart(2, '0')}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+
+            document.getElementById('export-modal').classList.remove('hidden');
+            updateInvoicePreview();
+        }
+
+        function closeExportModal() {
+            document.getElementById('export-modal').classList.add('hidden');
+        }
+
+        function updateInvoicePreview() {
+            const tbody = document.getElementById('invoice-items-body');
+            tbody.innerHTML = '';
+
+            const selectedCbs = document.querySelectorAll('.export-item-cb:checked');
+            let total = 0;
+
+            selectedCbs.forEach(cb => {
+                const desc = cb.getAttribute('data-desc');
+                const amount = parseFloat(cb.getAttribute('data-amount'));
+                total += amount;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-2 text-slate-800">${desc}</td>
+                        <td class="p-2 text-right font-semibold text-slate-900">$${amount.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('invoice-total').innerText = `$${total.toFixed(2)}`;
+        }
+
+        function downloadInvoiceImage() {
+            const node = document.getElementById('invoice-preview');
+            html2canvas(node, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Relacion_Comisiones_JJV_${new Date().toISOString().slice(0,10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        function saveData() {
+            localStorage.setItem('jjv_projects_v3', JSON.stringify(projects));
+            localStorage.setItem('jjv_support_v3', JSON.stringify(supportLogs));
+        }
+
+        renderProjects();
+    </script>
+</body>
+</html>
